@@ -1,3 +1,4 @@
 assets/*
 venv/
 pyrightconfig.json
+output/
