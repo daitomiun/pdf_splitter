@@ -9,6 +9,8 @@ def main():
         app.split_pdf()
     if app.args.delete:
         app.del_range_pdf()
+    if app.args.command == "add":
+        app.add_pdf()
 
 
 

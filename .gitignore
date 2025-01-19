@@ -2,4 +2,4 @@ assets/*
 venv/
 pyrightconfig.json
 output/
-__pycache__/*
+__pycache__/

@@ -1,7 +1,6 @@
 import argparse
 from pathlib import Path
 from PyPDF2 import PdfReader, PdfWriter
-import itertools
 
 class Cmdline():
     def __init__(self) -> None:
@@ -22,23 +21,51 @@ class Cmdline():
             "-s", "--split",
             help="It splits a file to multiple files with a range of pages '--split 1-30 31-40' or single pages '--split 1 4 6' given by the user",
             nargs="+",
-            type=self.parse_split
+            type=self.parse_input
         )
         self.parser.add_argument(
             "-d", "--delete",
-            help="It deletes a range of pages '--del 1-5' or a single page '--del 1 3 5' from a PDF and makes a copy with the deleted pages",
+            help="It deletes a range of pages '--del 1-5' or a single page '--delete 1 3 5' from a PDF and makes a copy with the deleted pages",
             nargs="+",
-            type=self.parse_split
+            type=self.parse_input
         )
+
+        subparsers = self.parser.add_subparsers(dest='command')
+        add_parser = subparsers.add_parser("add", help="Add a PDF file into another")
+        add_parser.add_argument("insert", help="PDF to insert")
+
+        position_group = add_parser.add_mutually_exclusive_group(required=True)
+        position_group.add_argument(
+            "--after",
+            help="Adds the number of pages AFTER the specified page '--file source.pdf add insert.pdf --after 60'",
+            type=int
+        )
+        position_group.add_argument(
+            "--before",
+            help="Adds the number of pages BEFORE the specified page '--file source.pdf add insert.pdf --before 60'",
+            type=int
+        )
+
         self.args = self.parser.parse_args()
         self.input_pdf = PdfReader(self.args.file_path)
+
+    def check_valid_pos_num(self):
+        pdf = PdfReader(self.args.insert)
+
+        position = self.args.after if self.args.after is not None else self.args.before
+        position_type = "after" if self.args.after is not None else "before"
+        if position < 0 or position > len(pdf.pages):
+            self.parser.error(f"ERR: Invalid {position_type} Position {position}")
+
+        position = position if position_type == "after" else position - 1
+        return position
 
     def check_valid_range(self, page):
         num_pages = len(self.input_pdf.pages)
         if page > num_pages:
             self.parser.error(f"ERR: page {page} range is higher than num of pages {num_pages}")
 
-    def parse_split(self, value):
+    def parse_input(self, value):
        if "-" in value:
             start, end = map(int, value.split("-"))
             if  start > end:
@@ -89,8 +116,21 @@ class Cmdline():
         print(f"--- PDF deletion at pages {flattened_omit_list}  ---")
         print(f"--- DONE: PDF deletion done at file  {pdf_path} ---")
 
+    def add_pdf(self):
+        print("--- add action ---")
+        pos = self.check_valid_pos_num()
 
+        reader_pdf_to_insert = PdfReader(self.args.insert)
+        writer = PdfWriter()
+        writer.append_pages_from_reader(self.input_pdf)
+        writer.merge(position=pos, fileobj=reader_pdf_to_insert)
 
+        file_name = Path(self.args.file_path).stem
+        pdf_path = f"./output/{file_name}_added_pages.pdf"
+        with open(pdf_path, "wb") as fp:
+            writer.write(fp)
+        print(f"--- PDF files added from file: {self.args.insert}  ---")
+        print(f"--- DONE: PDF addition done at file  {pdf_path} ---")
 
 if __name__ == '__main__':
     app = Cmdline()
