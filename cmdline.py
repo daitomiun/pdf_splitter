@@ -3,7 +3,7 @@ from pathlib import Path
 from PyPDF2 import PdfReader, PdfWriter
 
 class Cmdline():
-    def __init__(self) -> None:
+    def __init__(self, args) -> None:
         self.parser = argparse.ArgumentParser(description="Split and list num of pages of a PDF")
         self.parser.add_argument(
             "-f", "--file",
