@@ -15,6 +15,9 @@ def main():
         app.del_range_pdf()
     if app.args.command == "add":
         app.add_pdf()
+    if app.args.crop_half:
+        print("--- Crop action ---")
+        app.crop_half()
 
 
 

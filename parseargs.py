@@ -31,6 +31,13 @@ class PDFArgumentParser():
             nargs="+",
             type=self.parse_input
         )
+        self.parser.add_argument(
+            "-ch", "--crop-half",
+            help="From a range of pages it crops by half and gets the left and right side to create 2 new pages and output to copy of the modified file '--crop-half 1-30 31-40' or single pages '--crop 1 4 6' given by the user",
+            nargs="+",
+            type=self.parse_input
+        )
+
 
     def _configure_subparsers(self):
         subparsers = self.parser.add_subparsers(dest='command')

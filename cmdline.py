@@ -1,5 +1,6 @@
 from pathlib import Path
 from PyPDF2 import PdfReader, PdfWriter
+from copy import deepcopy
 
 class Cmdline():
     def __init__(self, args) -> None:
@@ -91,3 +92,31 @@ class Cmdline():
         print(f"--- PDF files added from file: {self.args.insert}  ---")
         print(f"--- DONE: PDF addition done at file  {pdf_path} ---")
 
+
+    def crop_half(self):
+        writer = PdfWriter()
+
+        # add page 1 from reader to output document, unchanged:
+        writer.add_page(self.input_pdf.pages[0])
+
+        # add page 2 from reader, but rotated clockwise 90 degrees:
+        writer.add_page(self.input_pdf.pages[1].rotate(90))
+
+        # add page 3 from reader, but crop it to half size:
+        page3 = deepcopy(self.input_pdf.pages[4])
+
+        page3.mediabox.upper_right = (
+            page3.mediabox.right / 2,
+            page3.mediabox.top,
+        )
+        writer.add_page(page3)
+
+        page4 = deepcopy(self.input_pdf.pages[4])
+        page4.mediabox.upper_left = (
+            page4.mediabox.right / 2,
+            page4.mediabox.top,
+        )
+        writer.add_page(page4)
+        # write to document-output.pdf
+        with open("PyPDF2-output.pdf", "wb") as fp:
+            writer.write(fp)
