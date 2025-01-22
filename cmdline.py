@@ -1,61 +1,20 @@
-import argparse
 from pathlib import Path
 from PyPDF2 import PdfReader, PdfWriter
 
 class Cmdline():
     def __init__(self, args) -> None:
-        self.parser = argparse.ArgumentParser(description="Split and list num of pages of a PDF")
-        self.parser.add_argument(
-            "-f", "--file",
-            dest="file_path",
-            type=str,
-            help="Get the PDF file location",
-            required=True
-        )
-        self.parser.add_argument(
-            "-tp", "--total-pages", 
-            help="From the file location get total pages of the PDF",
-            action="store_true"
-        )
-        self.parser.add_argument(
-            "-s", "--split",
-            help="It splits a file to multiple files with a range of pages '--split 1-30 31-40' or single pages '--split 1 4 6' given by the user",
-            nargs="+",
-            type=self.parse_input
-        )
-        self.parser.add_argument(
-            "-d", "--delete",
-            help="It deletes a range of pages '--del 1-5' or a single page '--delete 1 3 5' from a PDF and makes a copy with the deleted pages",
-            nargs="+",
-            type=self.parse_input
-        )
-
-        subparsers = self.parser.add_subparsers(dest='command')
-        add_parser = subparsers.add_parser("add", help="Add a PDF file into another")
-        add_parser.add_argument("insert", help="PDF to insert")
-
-        position_group = add_parser.add_mutually_exclusive_group(required=True)
-        position_group.add_argument(
-            "--after",
-            help="Adds the number of pages AFTER the specified page '--file source.pdf add insert.pdf --after 60'",
-            type=int
-        )
-        position_group.add_argument(
-            "--before",
-            help="Adds the number of pages BEFORE the specified page '--file source.pdf add insert.pdf --before 60'",
-            type=int
-        )
-
-        self.args = self.parser.parse_args()
+        self.args = args
         self.input_pdf = PdfReader(self.args.file_path)
 
     def check_valid_pos_num(self):
-        pdf = PdfReader(self.args.insert)
-
         position = self.args.after if self.args.after is not None else self.args.before
         position_type = "after" if self.args.after is not None else "before"
-        if position < 0 or position > len(pdf.pages):
-            self.parser.error(f"ERR: Invalid {position_type} Position {position}")
+        pdf_to_add = PdfReader(self.args.insert)
+
+        print(f"page to add {self.args.insert}")
+        print(f"{position_type} the position {position} with a total of total pages {len(pdf_to_add.pages)}")
+        if position < 0 or position > len(self.input_pdf.pages):
+            raise ValueError(f"ERR: Invalid {position_type} Position {position}")
 
         position = position if position_type == "after" else position - 1
         return position
@@ -63,20 +22,20 @@ class Cmdline():
     def check_valid_range(self, page):
         num_pages = len(self.input_pdf.pages)
         if page > num_pages:
-            self.parser.error(f"ERR: page {page} range is higher than num of pages {num_pages}")
+            raise ValueError(f"ERR: page {page} range is higher than num of pages {num_pages}")
 
     def parse_input(self, value):
        if "-" in value:
             start, end = map(int, value.split("-"))
             if  start > end:
-                self.parser.error(f"ERR: Start range {start} is higher than end range {end}")
+                raise ValueError(f"ERR: Start range {start} is higher than end range {end}")
 
             if start < 1 or end < 1:
-                self.parser.error(f"ERR: start {start} or end {end} range must be positive numbers")
+                raise ValueError(f"ERR: start {start} or end {end} range must be positive numbers")
             return list(range(start - 1, end))
        single_page = int(value) 
        if single_page < 1:
-           self.parser.error(f"ERR: Page {single_page} has to be positive")
+           raise ValueError(f"ERR: Page {single_page} has to be positive")
        return [int(value) - 1]
 
     def get_num_pages(self):
@@ -132,5 +91,3 @@ class Cmdline():
         print(f"--- PDF files added from file: {self.args.insert}  ---")
         print(f"--- DONE: PDF addition done at file  {pdf_path} ---")
 
-if __name__ == '__main__':
-    app = Cmdline()
