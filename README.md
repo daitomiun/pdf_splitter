@@ -11,7 +11,7 @@ python3 -m venv
 
 2. install specified requirements
 ```bash
-pip install requirements.txt
+pip install -f requirements.txt
 ```
 
 ## Getting started
