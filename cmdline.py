@@ -1,3 +1,4 @@
+from os import write
 from pathlib import Path
 from PyPDF2 import PdfReader, PdfWriter
 from copy import deepcopy
@@ -24,20 +25,6 @@ class Cmdline():
         num_pages = len(self.input_pdf.pages)
         if page > num_pages:
             raise ValueError(f"ERR: page {page} range is higher than num of pages {num_pages}")
-
-    def parse_input(self, value):
-       if "-" in value:
-            start, end = map(int, value.split("-"))
-            if  start > end:
-                raise ValueError(f"ERR: Start range {start} is higher than end range {end}")
-
-            if start < 1 or end < 1:
-                raise ValueError(f"ERR: start {start} or end {end} range must be positive numbers")
-            return list(range(start - 1, end))
-       single_page = int(value) 
-       if single_page < 1:
-           raise ValueError(f"ERR: Page {single_page} has to be positive")
-       return [int(value) - 1]
 
     def get_num_pages(self):
         print(f"There are {len(self.input_pdf.pages)} pages at document {self.args.file_path}")
@@ -94,29 +81,44 @@ class Cmdline():
 
 
     def crop_half(self):
+        flattened_list = [item for sublist in self.args.crop_half for item in sublist]
+        total_pages = list(range(0, len(self.input_pdf.pages)))
+        pages_to_crop = [i for i in total_pages if i in flattened_list]
+
         writer = PdfWriter()
+        print(f"pages to crop: {pages_to_crop}")
 
-        # add page 1 from reader to output document, unchanged:
-        writer.add_page(self.input_pdf.pages[0])
+        for page in total_pages:
+            if page in pages_to_crop:
+                print(f"cropping page by half: {page} and creating 2 new pages")
+                first_page = deepcopy(self.input_pdf.pages[page])
+                first_page.mediabox.upper_right = (
+                    first_page.mediabox.right / 2,
+                    first_page.mediabox.top,
+                )
+                writer.add_page(first_page)
 
-        # add page 2 from reader, but rotated clockwise 90 degrees:
-        writer.add_page(self.input_pdf.pages[1].rotate(90))
+                second_page = deepcopy(self.input_pdf.pages[page])
+                second_page.mediabox.upper_left = (
+                    second_page.mediabox.right / 2,
+                    second_page.mediabox.top,
+                )
+                writer.add_page(second_page)
+            else:
+                writer.add_page(self.input_pdf.pages[page])
 
-        # add page 3 from reader, but crop it to half size:
-        page3 = deepcopy(self.input_pdf.pages[4])
+        stem_file_name = Path(self.args.file_path).stem
+        file_name = f"{stem_file_name}_cropped_pages.pdf"
+        self._write_to_folder(writer, file_name=file_name)
 
-        page3.mediabox.upper_right = (
-            page3.mediabox.right / 2,
-            page3.mediabox.top,
-        )
-        writer.add_page(page3)
+        
 
-        page4 = deepcopy(self.input_pdf.pages[4])
-        page4.mediabox.upper_left = (
-            page4.mediabox.right / 2,
-            page4.mediabox.top,
-        )
-        writer.add_page(page4)
-        # write to document-output.pdf
-        with open("PyPDF2-output.pdf", "wb") as fp:
-            writer.write(fp)
+    def _write_to_folder(self, writer, dir_to_write="output/", file_name="default.pdf"):
+        file_dir = Path(dir_to_write) / Path(file_name)
+        file_dir.parent.mkdir(parents=True, exist_ok=True)
+
+        with file_dir.open("wb") as op:
+            writer.write(op)
+
+        print(f"DONE: file created at path {file_dir.as_posix()}")
+
