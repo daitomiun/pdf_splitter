@@ -1,4 +1,3 @@
-from os import write
 from pathlib import Path
 from PyPDF2 import PdfReader, PdfWriter
 from copy import deepcopy
@@ -81,10 +80,8 @@ class Cmdline():
 
 
     def crop_half(self):
-        flattened_list = [item for sublist in self.args.crop_half for item in sublist]
         total_pages = list(range(0, len(self.input_pdf.pages)))
-        pages_to_crop = [i for i in total_pages if i in flattened_list]
-
+        pages_to_crop = set(item for sublist in self.args.crop_half for item in sublist)
         writer = PdfWriter()
         print(f"pages to crop: {pages_to_crop}")
 
@@ -92,6 +89,7 @@ class Cmdline():
             if page in pages_to_crop:
                 print(f"cropping page by half: {page} and creating 2 new pages")
                 first_page = deepcopy(self.input_pdf.pages[page])
+
                 first_page.mediabox.upper_right = (
                     first_page.mediabox.right / 2,
                     first_page.mediabox.top,
@@ -111,9 +109,7 @@ class Cmdline():
         file_name = f"{stem_file_name}_cropped_pages.pdf"
         self._write_to_folder(writer, file_name=file_name)
 
-        
-
-    def _write_to_folder(self, writer, dir_to_write="output/", file_name="default.pdf"):
+    def _write_to_folder(self, writer, dir_to_write="./output/", file_name="default.pdf"):
         file_dir = Path(dir_to_write) / Path(file_name)
         file_dir.parent.mkdir(parents=True, exist_ok=True)
 
